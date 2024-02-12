@@ -1,0 +1,33 @@
+
+
+.to-do-list form input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+  }
+  
+  .to-do-list form button {
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .to-do-list form button:hover {
+    background-color: #ced3ce;
+  }
+  
+  .tables{
+    width: 100%;
+    height: auto;
+    padding: 20px;
+    margin: 20px;
+    border: 2px solid slategrey;
+    border-radius: 10px;
+    background-color: #ccc;
+    gap: 20px;
+  }
+  
+  
