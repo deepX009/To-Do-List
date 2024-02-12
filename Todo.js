@@ -1,138 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import './Loginsignup.css';
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
 
-const ToDoList = () => {
-  const [toDotdst, setToDotdst] = useState([]);
-  const [updatedToDoItem, setUpdatedToDoItem] = useState({
-    _id: '',
-    task: '',
-    completed: '',
-  });
-  const [showUpdateForm, setShowUpdateForm] = useState(false);
-  const [editingItemId, setEditingItemId] = useState(null);
+const app = express();
+const PORT = process.env.PORT || 5005;
 
-  useEffect(() => {
-    fetchToDoItems();
-  }, []);
+app.use(express.json());
+app.use(cors());
 
-  const fetchToDoItems = async () => {
-    try {
-      const response = await fetch('http://localhost:5005/todos');
-      if (response.ok) {
-        const toDoData = await response.json();
-        setToDotdst(toDoData);
-      } else {
-        console.error('Failed to fetch to-do items. Server responded with:', response.status);
-      }
-    } catch (error) {
-      console.error('An error occurred while fetching to-do items:', error.message);
+mongoose.connect('mongodb://127.0.0.1:27017/Todo-list', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const todoSchema = new mongoose.Schema({
+  task: String,
+  completed: Boolean,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Todo = mongoose.model('Todo', todoSchema);
+
+app.get('/todos', async (req, res) => {
+  try {
+    const todos = await Todo.find().sort({ createdAt: -1 });
+    res.json(todos);
+  } catch (error) {
+    console.error('Error fetching todos:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/todos', async (req, res) => {
+  try {
+    const { task } = req.body;
+    const todo = new Todo({ task, completed: false });
+    await todo.save();
+    res.json(todo);
+  } catch (error) {
+    console.error('Error adding todo:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.put('/todos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { task, completed } = req.body;
+    const updatedTodo = await Todo.findByIdAndUpdate(id, { task, completed }, { new: true });
+    res.json(updatedTodo);
+  } catch (error) {
+    console.error('Error updating todo:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.delete('/todos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedTodo = await Todo.findByIdAndDelete(id);
+    if (deletedTodo) {
+      res.json({ message: 'Todo deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Todo not found' });
     }
-  };
+  } catch (error) {
+    console.error('Error deleting todo:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
-  const handleUpdate = (itemId) => {
-    setEditingItemId(itemId);
-    const todoToUpdate = toDotdst.find(todo => todo._id === itemId);
-    if (todoToUpdate) {
-      setUpdatedToDoItem({
-        _id: itemId,
-        task: todoToUpdate.task,
-        completed: todoToUpdate.completed,
-      });
-      setShowUpdateForm(true);
-    }
-  };
-
-  const handleUpdateSubmit = async () => {
-    try {
-      const response = await fetch(`http://localhost:5005/todos/${updatedToDoItem._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedToDoItem), // Include completed status
-      });
-
-      if (response.ok) {
-        fetchToDoItems();
-        setShowUpdateForm(false);
-        setEditingItemId(null);
-        console.log('To-Do item updated successfully');
-      } else {
-        console.error('Failed to update to-do item. Server responded with:', response.status);
-      }
-    } catch (error) {
-      console.error('An error occurred while updating to-do item:', error.message);
-    }
-  };
-
-  const handleCancel = () => {
-    setShowUpdateForm(false);
-    setEditingItemId(null);
-  };
-
-  const handleDelete = async (itemId) => {
-    const confirmDelete = window.confirm('Are you sure you want to delete this to-do item?');
-    if (confirmDelete) {
-      try {
-        const response = await fetch(`http://localhost:5005/todos/${itemId}`, {
-          method: 'DELETE',
-        });
-
-        if (response.ok) {
-          fetchToDoItems();
-          console.log('To-Do item deleted successfully');
-        } else {
-          console.error('Failed to delete to-do item. Server responded with:', response.status);
-        }
-      } catch (error) {
-        console.error('An error occurred while deleting to-do item:', error.message);
-      }
-    }
-  };
-
-  return (
-    <div className='to-do-list'>
-        <h1>todo data</h1>
-        <table className='tables'>
-        <thead>
-          <tr>
-            <th>Sr. No</th>
-            <th>Task</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-        {toDotdst.map((toDoItem, index) => (
-          <tr key={toDoItem._id}>
-            <td>{index + 1}</td>
-            <td>
-              {editingItemId === toDoItem._id ? (
-                <input type="text" value={updatedToDoItem.task} onChange={(e) => setUpdatedToDoItem({ ...updatedToDoItem, task: e.target.value })} />
-              ) : (
-                <>
-                  {toDoItem.completed ? <del>{toDoItem.task}</del> : toDoItem.task}
-                </>
-              )}
-            </td>
-            <td>
-              {editingItemId === toDoItem._id ? (
-                <>
-                  <button onClick={handleUpdateSubmit}>Save</button>
-                  <button onClick={handleCancel}>Cancel</button>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => handleUpdate(toDoItem._id)}>Update</button>
-                  <button onClick={() => handleDelete(toDoItem._id)}>Delete</button>
-                </>
-              )}
-            </td>
-          </tr>
-        ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-export default ToDoList;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
