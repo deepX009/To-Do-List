@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Loginsignup.css';
 
 const ToDoList = () => {
-  const [toDotdst, setToDotdst] = useState([]);
+  const [toDolist, setToDolist] = useState([]);
   const [updatedToDoItem, setUpdatedToDoItem] = useState({
     _id: '',
     task: '',
@@ -10,9 +10,18 @@ const ToDoList = () => {
   });
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
+  const prevtoDolistRef = React.useRef();
 
   useEffect(() => {
-    fetchToDoItems();
+    prevtoDolistRef.current = toDolist;
+  }, [toDolist]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchToDoItems();
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchToDoItems = async () => {
@@ -20,7 +29,7 @@ const ToDoList = () => {
       const response = await fetch('http://localhost:5005/todos');
       if (response.ok) {
         const toDoData = await response.json();
-        setToDotdst(toDoData);
+        setToDolist(toDoData);
       } else {
         console.error('Failed to fetch to-do items. Server responded with:', response.status);
       }
@@ -31,7 +40,7 @@ const ToDoList = () => {
 
   const handleUpdate = (itemId) => {
     setEditingItemId(itemId);
-    const todoToUpdate = toDotdst.find(todo => todo._id === itemId);
+    const todoToUpdate = toDolist.find(todo => todo._id === itemId);
     if (todoToUpdate) {
       setUpdatedToDoItem({
         _id: itemId,
@@ -49,7 +58,7 @@ const ToDoList = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedToDoItem), // Include completed status
+        body: JSON.stringify(updatedToDoItem), 
       });
 
       if (response.ok) {
@@ -102,7 +111,7 @@ const ToDoList = () => {
           </tr>
         </thead>
         <tbody>
-        {toDotdst.map((toDoItem, index) => (
+        {toDolist.map((toDoItem, index) => (
           <tr key={toDoItem._id}>
             <td>{index + 1}</td>
             <td>
